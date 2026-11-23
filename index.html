@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Von Neumann Architecture &amp; FDE Cycle Interactive</title>
+<style>
+  :root {
+    --primary: #007BA6;
+    --primary-light: #f4fafd;
+    --teal: #00796B;
+    --teal-light: #e0f2f1;
+    --amber: #ef6c00;
+    --amber-light: #fff3e0;
+    --red: #c62828;
+    --red-light: #ffebee;
+    --bg: #ffffff;
+    --text: #333333;
+  }
+
+  * {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 15px;
+    background-color: #f7f9fa;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .app-container {
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--bg);
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Header & Level Tabs */
+  .top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    gap: 10px;
+  }
+
+  .top-bar h1 {
+    font-size: 1.3em;
+    color: var(--primary);
+    margin: 0;
+  }
+
+  .level-tabs {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tab-btn {
+    padding: 8px 14px;
+    border: 2px solid var(--primary);
+    background: #fff;
+    color: var(--primary);
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .tab-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* Instruction & Prompt Banner */
+  .prompt-box {
+    background: var(--primary-light);
+    border-left: 5px solid var(--primary);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+  }
+
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .prompt-title {
+    font-weight: bold;
+    color: var(--primary);
+    font-size: 1.05em;
+  }
+
+  .hint-btn {
+    background: var(--amber-light);
+    border: 1px solid var(--amber);
+    color: #b25000;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.85em;
+    cursor: pointer;
+  }
+
+  .hint-btn:hover {
+    background: #ffe0b2;
+  }
+
+  .hint-text {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #90caf9;
+    font-size: 0.92em;
+    color: #444;
+  }
+
+  /* Word Bank (Level 1) */
+  .word-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: #f1f5f8;
+    border: 1px solid #cfd8dc;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    min-height: 54px;
+    align-items: center;
+  }
+
+  .word-bank-label {
+    font-weight: bold;
+    font-size: 0.88em;
+    color: #555;
+    margin-right: 6px;
+  }
+
+  .chip {
+    background: #fff;
+    border: 2px solid var(--teal);
+    color: var(--teal);
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    user-select: none;
+    transition: transform 0.1s, background 0.2s;
+  }
+
+  .chip:hover {
+    background: var(--teal-light);
+  }
+
+  .chip.selected {
+    background: var(--teal);
+    color: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0, 121, 107, 0.35);
+  }
+
+  .chip.placed {
+    display: none;
+  }
+
+  /* Architecture Diagram Grid */
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 0.65fr 0.8fr;
+    gap: 14px;
+    align-items: stretch;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 720px) {
+    .diagram-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* CPU Box */
+  .cpu-box {
+    background: var(--primary-light);
+    border: 3px solid var(--primary);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .cpu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .cpu-title {
+    font-weight: bold;
+    color: var(--primary);
+    font-size: 1.1em;
+  }
+
+  .clock-badge {
+    background: var(--amber-light);
+    border: 2px solid var(--amber);
+    color: #b25000;
+    font-weight: bold;
+    font-size: 0.82em;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .cpu-inner {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 10px;
+  }
+
+  .unit-box {
+    background: #fff;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+  }
+
+  .unit-box.alu {
+    border-color: var(--teal);
+    margin-bottom: 0;
+  }
+
+  .unit-title {
+    font-weight: bold;
+    text-align: center;
+    color: var(--primary);
+    font-size: 0.95em;
+    margin-bottom: 4px;
+  }
+
+  .unit-box.alu .unit-title {
+    color: var(--teal);
+  }
+
+  .unit-desc {
+    font-size: 0.78em;
+    color: #555;
+    text-align: center;
+  }
+
+  .registers-panel {
+    background: var(--teal-light);
+    border: 2px solid var(--teal);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .registers-title {
+    font-weight: bold;
+    color: var(--teal);
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+  }
+
+  /* Drop Zones / Interactive Slots */
+  .slot {
+    background: #fff;
+    border: 2px dashed #78909c;
+    border-radius: 6px;
+    padding: 7px 6px;
+    margin-bottom: 7px;
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .slot:last-child {
+    margin-bottom: 0;
+  }
+
+  .slot-clue {
+    font-size: 0.72em;
+    color: #607d8b;
+    display: block;
+  }
+
+  .slot-value {
+    font-weight: bold;
+    font-size: 0.88em;
+    color: var(--primary);
+  }
+
+  .slot.filled {
+    border-style: solid;
+    border-color: var(--primary);
+    background: #e3f2fd;
+  }
+
+  .slot.correct {
+    border-style: solid;
+    border-color: #2e7d32;
+    background: #e8f5e9;
+  }
+
+  .slot.correct .slot-value {
+    color: #1b5e20;
+  }
+
+  .slot.incorrect {
+    border-style: solid;
+    border-color: var(--red);
+    background: var(--red-light);
+  }
+
+  .slot.incorrect .slot-value {
+    color: var(--red);
+  }
+
+  /* Buses Column */
+  .buses-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .bus-wrapper {
+    text-align: center;
+  }
+
+  .bus-arrow {
+    font-weight: bold;
+    padding: 3px 0;
+    border-radius: 4px;
+    font-size: 0.95em;
+    margin: 4px 0;
+    color: #fff;
+  }
+
+  .bus-arrow.addr { background: var(--primary); }
+  .bus-arrow.data { background: var(--teal); }
+  .bus-arrow.ctrl { background: var(--red); }
+
+  .bus-sub {
+    font-size: 0.73em;
+    color: #555;
+  }
+
+  .scaffold-badge {
+    background: var(--red-light);
+    border: 2px solid var(--red);
+    color: var(--red);
+    font-weight: bold;
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 0.85em;
+  }
+
+  /* RAM Column */
+  .ram-box {
+    background: #fff8e1;
+    border: 3px solid #f57f17;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .ram-title {
+    font-weight: bold;
+    color: #e65100;
+    text-align: center;
+    font-size: 1.02em;
+    margin-bottom: 8px;
+  }
+
+  .ram-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-size: 0.8em;
+    text-align: center;
+  }
+
+  .ram-table th {
+    background: #ffe082;
+    border: 1px solid #fbc02d;
+    padding: 4px;
+  }
+
+  .ram-table td {
+    border: 1px solid #fbc02d;
+    padding: 5px 4px;
+  }
+
+  .ram-table tr.active-row {
+    background: #ffecb3;
+    font-weight: bold;
+  }
+
+  /* Level 2 Clickable Highlighting */
+  .fde-target {
+    cursor: pointer !important;
+  }
+
+  .fde-target:hover {
+    box-shadow: 0 0 0 3px rgba(0, 123, 166, 0.4);
+  }
+
+  .fde-active-glow {
+    box-shadow: 0 0 0 4px #ff9800 !important;
+    background-color: #fff8e1 !important;
+    border-color: #ef6c00 !important;
+  }
+
+  /* Controls & Feedback */
+  .action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #005f80;
+  }
+
+  .btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  .btn-secondary:hover {
+    background: #bdbdbd;
+  }
+
+  .btn-success {
+    background: var(--teal);
+    color: #fff;
+  }
+
+  .btn-success:hover {
+    background: #005a4f;
+  }
+
+  .feedback-box {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.94em;
+    display: none;
+  }
+
+  .feedback-box.success {
+    display: block;
+    background: #e8f5e9;
+    border-left: 5px solid #2e7d32;
+    color: #1b5e20;
+  }
+
+  .feedback-box.error {
+    display: block;
+    background: var(--red-light);
+    border-left: 5px solid var(--red);
+    color: #b71c1c;
+  }
+
+  .feedback-box.info {
+    display: block;
+    background: var(--teal-light);
+    border-left: 5px solid var(--teal);
+    color: #004d40;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #cfd8dc;
+  }
+
+  .dot.done {
+    background: var(--teal);
+  }
+
+  .dot.current {
+    background: var(--amber);
+    transform: scale(1.2);
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- TOP HEADER & LEVEL SWITCHER -->
+  <div class="top-bar">
+    <h1>CPU Architecture &amp; FDE Explorer</h1>
+    <div class="level-tabs">
+      <button id="tab-lvl1" class="tab-btn active" onclick="switchLevel(1)">Level 1: Label Diagram</button>
+      <button id="tab-lvl2" class="tab-btn" onclick="switchLevel(2)">Level 2: FDE Cycle Trace</button>
+    </div>
+  </div>
+
+  <!-- INSTRUCTION / PROMPT BANNER -->
+  <div class="prompt-box">
+    <div class="prompt-header">
+      <span id="prompt-title" class="prompt-title">Level 1: Tap a label from the word bank, then tap the matching slot on the diagram.</span>
+      <button class="hint-btn" onclick="toggleHint()">💡 Need a Hint?</button>
+    </div>
+    <div id="hint-text" class="hint-text">
+      Look closely at the clues inside each dashed box! Remember: the <strong>Address Bus</strong> is one-way (CPU to RAM), while the <strong>Data Bus</strong> carries data both ways.
+    </div>
+  </div>
+
+  <!-- WORD BANK (VISIBLE IN LEVEL 1) -->
+  <div id="word-bank" class="word-bank">
+    <span class="word-bank-label">Labels:</span>
+    <div class="chip" data-id="PC" onclick="selectChip(this)">PC (Program Counter)</div>
+    <div class="chip" data-id="MAR" onclick="selectChip(this)">MAR (Memory Address Register)</div>
+    <div class="chip" data-id="MDR" onclick="selectChip(this)">MDR (Memory Data Register)</div>
+    <div class="chip" data-id="CIR" onclick="selectChip(this)">CIR (Current Instruction Register)</div>
+    <div class="chip" data-id="ACC" onclick="selectChip(this)">ACC (Accumulator)</div>
+    <div class="chip" data-id="ADDR_BUS" onclick="selectChip(this)">Address Bus</div>
+    <div class="chip" data-id="DATA_BUS" onclick="selectChip(this)">Data Bus</div>
+  </div>
+
+  <!-- INTERACTIVE DIAGRAM -->
+  <div class="diagram-grid">
+    
+    <!-- LEFT: CPU -->
+    <div class="cpu-box">
+      <div class="cpu-header">
+        <span class="cpu-title">Central Processing Unit (CPU)</span>
+        <span class="clock-badge">⏱ System Clock</span>
+      </div>
+
+      <div class="cpu-inner">
+        <!-- CU & ALU -->
+        <div>
+          <div id="comp-CU" class="unit-box fde-target" onclick="handleComponentClick('CU')">
+            <div class="unit-title">Control Unit (CU)</div>
+            <div class="unit-desc">Decodes instructions &amp; sends control signals</div>
+          </div>
+
+          <div id="comp-ALU" class="unit-box alu fde-target" onclick="handleComponentClick('ALU')">
+            <div class="unit-title">ALU</div>
+            <div class="unit-desc">Arithmetic (+, -) &amp; Logic (AND, OR, &lt;, &gt;)</div>
+          </div>
+        </div>
+
+        <!-- REGISTERS -->
+        <div class="registers-panel">
+          <div class="registers-title">Registers</div>
+
+          <div id="slot-PC" class="slot fde-target" data-expected="PC" onclick="handleSlotClick(this, 'PC')">
+            <span class="slot-clue">Address of NEXT instruction</span>
+            <span class="slot-value">[Tap to place label]</span>
+          </div>
+
+          <div id="slot-MAR" class="slot fde-target" data-expected="MAR" onclick="handleSlotClick(this, 'MAR')">
+            <span class="slot-clue">Address currently being read/written</span>
+            <span class="slot-value">[Tap to place label]</span>
+          </div>
+
+          <div id="slot-MDR" class="slot fde-target" data-expected="MDR" onclick="handleSlotClick(this, 'MDR')">
+            <span class="slot-clue">Data/instruction arriving from RAM</span>
+            <span class="slot-value">[Tap to place label]</span>
+          </div>
+
+          <div id="slot-CIR" class="slot fde-target" data-expected="CIR" onclick="handleSlotClick(this, 'CIR')">
+            <span class="slot-clue">Instruction currently being decoded</span>
+            <span class="slot-value">[Tap to place label]</span>
+          </div>
+
+          <div id="slot-ACC" class="slot fde-target" data-expected="ACC" onclick="handleSlotClick(this, 'ACC')">
+            <span class="slot-clue">Stores ALU calculation results</span>
+            <span class="slot-value">[Tap to place label]</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: SYSTEM BUSES -->
+    <div class="buses-col">
+      <!-- Address Bus Slot -->
+      <div class="bus-wrapper">
+        <div id="slot-ADDR_BUS" class="slot fde-target" data-expected="ADDR_BUS" onclick="handleSlotClick(this, 'ADDR_BUS')">
+          <span class="slot-clue">Carries RAM addresses</span>
+          <span class="slot-value">[Tap to label]</span>
+        </div>
+        <div class="bus-arrow addr">&xrarr; &xrarr; &xrarr;</div>
+        <div class="bus-sub">One-way (CPU to RAM)</div>
+      </div>
+
+      <!-- Data Bus Slot -->
+      <div class="bus-wrapper">
+        <div id="slot-DATA_BUS" class="slot fde-target" data-expected="DATA_BUS" onclick="handleSlotClick(this, 'DATA_BUS')">
+          <span class="slot-clue">Carries binary data</span>
+          <span class="slot-value">[Tap to label]</span>
+        </div>
+        <div class="bus-arrow data">&xharr; &xharr; &xharr;</div>
+        <div class="bus-sub">Two-way (CPU &amp; RAM)</div>
+      </div>
+
+      <!-- Control Bus (Scaffolded / Pre-labelled) -->
+      <div class="bus-wrapper">
+        <div id="comp-CTRL_BUS" class="scaffold-badge fde-target" onclick="handleComponentClick('CTRL_BUS')" title="Already labelled as a guide!">
+          ✓ Control Bus
+        </div>
+        <div class="bus-arrow ctrl">&xharr; &xharr; &xharr;</div>
+        <div class="bus-sub">Carries Read/Write signals</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: MAIN MEMORY (RAM) -->
+    <div id="comp-RAM" class="ram-box fde-target" onclick="handleComponentClick('RAM')">
+      <div>
+        <div class="ram-title">Main Memory (RAM)</div>
+        <table class="ram-table">
+          <thead>
+            <tr>
+              <th>Addr</th>
+              <th>Contents</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="ram-0001">
+              <td><strong>0001</strong></td>
+              <td>LOAD 0100</td>
+            </tr>
+            <tr id="ram-0010">
+              <td><strong>0010</strong></td>
+              <td>ADD 0101</td>
+            </tr>
+            <tr id="ram-0011">
+              <td><strong>0011</strong></td>
+              <td>STORE 0110</td>
+            </tr>
+            <tr id="ram-0100">
+              <td><strong>0100</strong></td>
+              <td>Data: 14</td>
+            </tr>
+            <tr id="ram-0101">
+              <td><strong>0101</strong></td>
+              <td>Data: 28</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size: 0.75em; text-align: center; color: #666; margin-top: 8px;">
+        Stores instructions &amp; data together
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ACTION BAR -->
+  <div class="action-bar">
+    <div id="lvl1-controls" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button class="btn btn-primary" onclick="checkLabels()">Check Labels</button>
+      <button class="btn btn-secondary" onclick="resetLevel1()">Reset Labels</button>
+      <button id="btn-to-lvl2" class="btn btn-success" style="display: none;" onclick="switchLevel(2)">Start Level 2: FDE Cycle &rarr;</button>
+    </div>
+
+    <div id="lvl2-controls" style="display: none; width: 100%; justify-content: space-between; align-items: center;">
+      <div class="progress-dots" id="progress-dots"></div>
+      <button class="btn btn-secondary" onclick="resetLevel2()">Restart FDE Cycle</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK BANNER -->
+  <div id="feedback-box" class="feedback-box"></div>
+</div>
+
+<script>
+  let currentLevel = 1;
+  let selectedChipId = null;
+
+  const labelNames = {
+    PC: "PC (Program Counter)",
+    MAR: "MAR (Memory Address Register)",
+    MDR: "MDR (Memory Data Register)",
+    CIR: "CIR (Current Instruction Register)",
+    ACC: "ACC (Accumulator)",
+    ADDR_BUS: "Address Bus",
+    DATA_BUS: "Data Bus"
+  };
+
+  const specificHints = {
+    PC: "The Program Counter acts like a bookmark keeping track of the NEXT instruction.",
+    MAR: "The Memory Address Register holds the address currently being accessed in RAM.",
+    MDR: "The Memory Data Register holds data or instructions arriving from or going to RAM.",
+    CIR: "The Current Instruction Register holds the instruction currently being decoded.",
+    ACC: "The Accumulator stores the results of calculations done by the ALU.",
+    ADDR_BUS: "The Address Bus sends memory addresses one-way from the CPU to RAM.",
+    DATA_BUS: "The Data Bus carries binary data and instructions two-ways between CPU and RAM."
+  };
+
+  // Level 2 FDE Cycle Steps
+  const fdeSteps = [
+    {
+      stage: "FETCH (Step 1 of 7)",
+      prompt: "The CPU is ready to fetch the first instruction at address 0001. Which register currently holds the address of the NEXT instruction?",
+      target: "PC",
+      hint: "Look at the register at the top of the Registers panel—our 'bookmark' register.",
+      successMsg: "Spot on! The Program Counter (PC) holds 0001. Its value is now copied into the MAR.",
+      highlight: "slot-PC"
+    },
+    {
+      stage: "FETCH (Step 2 of 7)",
+      prompt: "Now that 0001 is in the MAR, which bus carries this memory address from the CPU to Main Memory (RAM)?",
+      target: "ADDR_BUS",
+      hint: "It is a unidirectional (one-way) bus pointing from the CPU towards RAM.",
+      successMsg: "Correct! The Address Bus carries address 0001 to RAM while the Control Bus sends a Memory Read signal.",
+      highlight: "slot-ADDR_BUS"
+    },
+    {
+      stage: "FETCH (Step 3 of 7)",
+      prompt: "RAM locates 'LOAD 0100' at address 0001. Which bus carries this instruction back into the CPU?",
+      target: "DATA_BUS",
+      hint: "This bidirectional bus transports actual instructions and data between RAM and the CPU.",
+      successMsg: "Well done! The Data Bus carries 'LOAD 0100' back into the CPU.",
+      highlight: "slot-DATA_BUS"
+    },
+    {
+      stage: "FETCH (Step 4 of 7)",
+      prompt: "Which register acts as the 'delivery tray' and immediately receives 'LOAD 0100' from the Data Bus?",
+      target: "MDR",
+      hint: "Look for the Memory Data Register in the Registers list.",
+      successMsg: "Correct! The Memory Data Register (MDR) temporarily holds 'LOAD 0100' before copying it to the CIR (and the PC increments to 0010).",
+      highlight: "slot-MDR"
+    },
+    {
+      stage: "DECODE (Step 5 of 7)",
+      prompt: "The instruction 'LOAD 0100' is now in the CIR. Which major CPU component inspects and decodes this instruction?",
+      target: "CU",
+      hint: "This component sits above the ALU and coordinates all CPU operations.",
+      successMsg: "Brilliant! The Control Unit (CU) decodes 'LOAD 0100' into the opcode (LOAD) and operand (0100).",
+      highlight: "comp-CU"
+    },
+    {
+      stage: "EXECUTE (Step 6 of 7)",
+      prompt: "Executing 'LOAD 0100' fetches the number 14 from RAM into the MDR. Suppose the next instruction 'ADD 0101' (adding 28) is now executed—which unit performs the addition?",
+      target: "ALU",
+      hint: "This unit handles all arithmetic calculations and logical comparisons.",
+      successMsg: "Yes! The Arithmetic/Logic Unit (ALU) calculates 14 + 28 = 42.",
+      highlight: "comp-ALU"
+    },
+    {
+      stage: "EXECUTE (Step 7 of 7)",
+      prompt: "Finally, which register stores the result (42) produced by the ALU?",
+      target: "ACC",
+      hint: "It sits at the bottom of the Registers list and acts like a calculator screen.",
+      successMsg: "🎉 Cycle Complete! The Accumulator (ACC) stores 42, and the CPU immediately begins the next Fetch-Decode-Execute cycle!",
+      highlight: "slot-ACC"
+    }
+  ];
+
+  let fdeIndex = 0;
+
+  function toggleHint() {
+    const hintEl = document.getElementById("hint-text");
+    hintEl.style.display = hintEl.style.display === "block" ? "none" : "block";
+  }
+
+  function selectChip(chipEl) {
+    if (currentLevel !== 1) return;
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("selected"));
+    
+    if (selectedChipId === chipEl.dataset.id) {
+      selectedChipId = null;
+    } else {
+      selectedChipId = chipEl.dataset.id;
+      chipEl.classList.add("selected");
+    }
+  }
+
+  function handleSlotClick(slotEl, slotId) {
+    if (currentLevel === 2) {
+      handleComponentClick(slotId);
+      return;
+    }
+
+    // Level 1: Placing or removing a label
+    const existingPlaced = slotEl.dataset.placed;
+
+    // If slot already has a label and no new chip is selected, return it to word bank
+    if (existingPlaced && !selectedChipId) {
+      returnChipToBank(existingPlaced);
+      clearSlot(slotEl);
+      return;
+    }
+
+    if (!selectedChipId) {
+      showFeedback("info", "First tap a label in the word bank at the top, then tap a dashed box to place it.");
+      return;
+    }
+
+    // If slot already had a different label, return old one to bank
+    if (existingPlaced) {
+      returnChipToBank(existingPlaced);
+    }
+
+    // Place selected chip
+    slotEl.dataset.placed = selectedChipId;
+    slotEl.classList.remove("correct", "incorrect");
+    slotEl.classList.add("filled");
+    slotEl.querySelector(".slot-value").textContent = labelNames[selectedChipId];
+
+    // Hide chip in word bank
+    const bankChip = document.querySelector(`.chip[data-id="${selectedChipId}"]`);
+    bankChip.classList.remove("selected");
+    bankChip.classList.add("placed");
+    selectedChipId = null;
+    hideFeedback();
+  }
+
+  function returnChipToBank(id) {
+    const bankChip = document.querySelector(`.chip[data-id="${id}"]`);
+    if (bankChip) {
+      bankChip.classList.remove("placed", "selected");
+    }
+  }
+
+  function clearSlot(slotEl) {
+    delete slotEl.dataset.placed;
+    slotEl.classList.remove("filled", "correct", "incorrect");
+    slotEl.querySelector(".slot-value").textContent = slotEl.id.includes("BUS") ? "[Tap to label]" : "[Tap to place label]";
+  }
+
+  function checkLabels() {
+    const slots = document.querySelectorAll(".slot");
+    let correctCount = 0;
+    let emptyCount = 0;
+    let wrongFeedback = [];
+
+    slots.forEach(slot => {
+      const expected = slot.dataset.expected;
+      const placed = slot.dataset.placed;
+      slot.classList.remove("correct", "incorrect");
+
+      if (!placed) {
+        emptyCount++;
+      } else if (placed === expected) {
+        slot.classList.add("correct");
+        correctCount++;
+      } else {
+        slot.classList.add("incorrect");
+        wrongFeedback.push(`<strong>${labelNames[placed]}</strong> is in the wrong spot. Hint: ${specificHints[expected]}`);
+      }
+    });
+
+    if (correctCount === slots.length) {
+      showFeedback("success", "🎉 Outstanding! Every register and bus is labelled correctly. Click 'Start Level 2: FDE Cycle' to trace how data flows through them!");
+      document.getElementById("btn-to-lvl2").style.display = "inline-block";
+    } else if (emptyCount > 0 && wrongFeedback.length === 0) {
+      showFeedback("info", `You have ${correctCount} out of ${slots.length} correct so far. Place the remaining ${emptyCount} label(s) and check again!`);
+    } else {
+      showFeedback("error", `You got ${correctCount} out of ${slots.length} right.<br>• ` + wrongFeedback.join("<br>• ") + "<br><em>Tip: Tap any red box to remove its label and try again.</em>");
+    }
+  }
+
+  function resetLevel1() {
+    document.querySelectorAll(".slot").forEach(clearSlot);
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("placed", "selected"));
+    selectedChipId = null;
+    document.getElementById("btn-to-lvl2").style.display = "none";
+    hideFeedback();
+  }
+
+  function switchLevel(lvl) {
+    currentLevel = lvl;
+    document.getElementById("tab-lvl1").classList.toggle("active", lvl === 1);
+    document.getElementById("tab-lvl2").classList.toggle("active", lvl === 2);
+    hideFeedback();
+    clearHighlights();
+
+    if (lvl === 1) {
+      document.getElementById("word-bank").style.display = "flex";
+      document.getElementById("lvl1-controls").style.display = "flex";
+      document.getElementById("lvl2-controls").style.display = "none";
+      document.getElementById("prompt-title").textContent = "Level 1: Tap a label from the word bank, then tap the matching slot on the diagram.";
+      document.getElementById("hint-text").innerHTML = "Look closely at the clues inside each dashed box! Remember: the <strong>Address Bus</strong> is one-way (CPU to RAM), while the <strong>Data Bus</strong> carries data both ways.";
+    } else {
+      // Auto-populate labels cleanly for Level 2 so students have a complete reference diagram
+      document.querySelectorAll(".slot").forEach(slot => {
+        const expected = slot.dataset.expected;
+        slot.dataset.placed = expected;
+        slot.classList.remove("incorrect", "filled");
+        slot.classList.add("correct");
+        slot.querySelector(".slot-value").textContent = labelNames[expected];
+      });
+
+      document.getElementById("word-bank").style.display = "none";
+      document.getElementById("lvl1-controls").style.display = "none";
+      document.getElementById("lvl2-controls").style.display = "flex";
+      fdeIndex = 0;
+      renderFdeStep();
+    }
+  }
+
+  function renderFdeStep() {
+    const step = fdeSteps[fdeIndex];
+    document.getElementById("prompt-title").textContent = `${step.stage}: ${step.prompt}`;
+    document.getElementById("hint-text").textContent = step.hint;
+    document.getElementById("hint-text").style.display = "none";
+
+    // Render progress dots
+    const dotsContainer = document.getElementById("progress-dots");
+    dotsContainer.innerHTML = "<span style='font-size:0.85em; font-weight:bold; color:#555; margin-right:4px;'>Progress:</span>";
+    fdeSteps.forEach((_, idx) => {
+      const dot = document.createElement("span");
+      dot.className = "dot" + (idx < fdeIndex ? " done" : idx === fdeIndex ? " current" : "");
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  function handleComponentClick(compId) {
+    if (currentLevel !== 2) return;
+    if (fdeIndex >= fdeSteps.length) return;
+
+    const step = fdeSteps[fdeIndex];
+    clearHighlights();
+
+    if (compId === step.target) {
+      const highlightEl = document.getElementById(step.highlight);
+      if (highlightEl) highlightEl.classList.add("fde-active-glow");
+
+      showFeedback("success", step.successMsg);
+      fdeIndex++;
+
+      if (fdeIndex < fdeSteps.length) {
+        setTimeout(() => {
+          renderFdeStep();
+        }, 300);
+      } else {
+        document.getElementById("prompt-title").textContent = "🏆 All Levels Complete! You have mastered the CPU components and FDE cycle.";
+        renderFdeStepFinal();
+      }
+    } else {
+      showFeedback("error", `Not quite! You clicked <strong>${compId.replace("_", " ")}</strong>. Re-read the prompt or click <em>"Need a Hint?"</em> above.`);
+    }
+  }
+
+  function renderFdeStepFinal() {
+    const dotsContainer = document.getElementById("progress-dots");
+    dotsContainer.innerHTML = "<span style='font-size:0.85em; font-weight:bold; color:#00796B;'>7 / 7 Steps Mastered!</span>";
+  }
+
+  function resetLevel2() {
+    fdeIndex = 0;
+    clearHighlights();
+    hideFeedback();
+    renderFdeStep();
+  }
+
+  function clearHighlights() {
+    document.querySelectorAll(".fde-active-glow").forEach(el => el.classList.remove("fde-active-glow"));
+  }
+
+  function showFeedback(type, html) {
+    const fb = document.getElementById("feedback-box");
+    fb.className = "feedback-box " + type;
+    fb.innerHTML = html;
+  }
+
+  function hideFeedback() {
+    const fb = document.getElementById("feedback-box");
+    fb.className = "feedback-box";
+    fb.style.display = "none";
+  }
+</script>
+
+</body>
+</html>
